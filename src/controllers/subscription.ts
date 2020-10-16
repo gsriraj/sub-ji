@@ -1,8 +1,18 @@
 import pool from '../db-config/db-config';
 import { Request, Response } from 'express'
+import { Subscription } from '../model/models'
 
 // To do - implement error codes
-class UserController {
+class SubscriptionController {
+    public async post(req: Request, res: Response) {
+        try {
+            const sub: Subscription = req.body
+            console.log("data body", sub)
+            
+        } catch (error) {
+            res.status(400).send(error)
+        }
+    }
     public async get(req: Request, res: Response) {
         try {
             const userName = req.params.username
@@ -46,4 +56,4 @@ class UserController {
     }
 }
 
-export default UserController;
+export default SubscriptionController;

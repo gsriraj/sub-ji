@@ -1,5 +1,6 @@
 import express, { Router } from 'express';
 import UserRoutes from './user';
+import SubscriptionRoutes from './subscription';
 
 
 class Routes {
@@ -10,6 +11,7 @@ class Routes {
     }
     config() {
         new UserRoutes(this.router)
+        new SubscriptionRoutes(this.router)
     }
 }
 
