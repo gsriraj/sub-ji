@@ -15,6 +15,7 @@ class UserRoutes {
 
     config() {
         this.router.get('/user/:username', userController.get);
+        this.router.put('/user/:username', userController.put);
     }
 }
 

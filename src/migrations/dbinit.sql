@@ -1,7 +1,7 @@
 -- Create Users table
 CREATE TABLE users (
 	user_id SERIAL PRIMARY KEY ,
-	user_name VARCHAR(50) NOT NULL,
+	user_name VARCHAR(50) NOT NULL UNIQUE,
 	created_at TIMESTAMP NOT NULL DEFAULT LOCALTIMESTAMP(0)
 );
 
