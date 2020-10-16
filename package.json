@@ -4,6 +4,8 @@
   "description": "a subscription as a service app",
   "main": "index.js",
   "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "sriraj.gk@gmail.com",
@@ -12,6 +14,7 @@
     "@types/express": "^4.17.8",
     "@types/node": "^14.11.8",
     "@types/pg": "^7.14.5",
+    "express": "^4.17.1",
     "pg": "^8.4.1"
   }
 }

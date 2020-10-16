@@ -1,25 +1,33 @@
 import express, { Application, Router } from 'express';
 import bodyParser from 'body-parser';
+import pool from './db-config/db-config';
+import routes from './routes/router';
 
 class Server {
-    private app;
+    private app: express.Application;
+    private route: express.Router;
 
-    constructor(){
+    constructor() {
         this.app = express();
+        this.route = routes;
         this.config();
+        this.routerConfig();
         this.dbConnect();
     }
 
     private config() {
-        this.app.use(bodyParser.urlencoded({ extended:true }));
+        this.app.use(bodyParser.urlencoded({ extended: true }));
         this.app.use(bodyParser.json({ limit: '1mb' }));
     }
 
     private dbConnect() {
-        // To do: Implement db configs
+        pool.connect(function (err: any, client, done) {
+            if (err) throw new Error(err);
+            console.log('Database connected!');
+        });
     }
     private routerConfig() {
-        // To do: Implement routers
+        this.app.use('/', this.route);
     }
     public start = (port: number) => {
         return new Promise((resolve, reject) => {
