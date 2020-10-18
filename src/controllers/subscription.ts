@@ -4,6 +4,7 @@ import { Subscription, CompareResponse } from '../model/models'
 import UserController from './user';
 import { Conf } from '../utils/config';
 import Axios from 'axios';
+import moment from 'moment';
 
 // To do - implement error codes
 class SubscriptionController extends UserController {
@@ -80,17 +81,56 @@ class SubscriptionController extends UserController {
                 }
             }
         } catch (error) {
-            // res.status(400).send(error)
+            res.status(400).send(error)
             console.log("error", error)
         }
     }
-    // public async get(req: Request, res: Response) {
-    //     try {
-    //         const sub: Subscription = this.getASubDetail()
-    //     } catch (error) {
 
-    //     }
-    // }
+    public get = async (req: Request, res: Response) => {
+        console.log("get in")
+        try {
+            const userName: string = req.params.username
+            const date = moment(req.params.date)
+            const user = await this.getAUser(userName)
+            let subs: any = await this.getSubDetails(user.user_id)
+            if (date == null || undefined) {
+                console.log("get in 2.2", subs)
+                subs = await subs.map((sub: any) => {
+                    console.log("get in 2.3", sub)
+                    let day = sub.start_date
+                    let day_start = moment(day).format("YYYY-MM-DD")
+                    let day_end = moment(day).add(parseInt(sub.validity), 'd').format("YYYY-MM-DD");
+                    console.log("final", day_start, day_end)
+                    return {
+                        "plan_id": sub.plan_id,
+                        "start_date": day_start,
+                        "valid_till": sub.validity == "Infinite" ? "Infinite" : day_end
+                    }
+                })
+                console.log("get in 3", subs)
+                res.status(200).json(subs);
+
+            } else {
+                subs = await subs.map((sub: any) => {
+                    let dateTwo = moment(sub.start_date).add(parseInt(sub.validity), 'd')
+                    console.log("checkeeeee", date.isSameOrAfter(moment(sub.start_date)), ".......", date.isBefore(dateTwo))
+
+                    console.log("date 2", date, dateTwo)
+                    if (date.isSameOrAfter(moment(sub.start_date)) && date.isBefore(dateTwo)) {
+                        res.status(200).json(
+                            {
+                                "plan_id": sub.plan_id,
+                                "days_left": sub.plan_id == "FREE" ? "Infinite" : moment(sub.start_date).add(parseInt(sub.validity), 'd').diff(date, 'days')
+                            }
+                        )
+                    }
+                });
+            }
+        } catch (error) {
+            res.status(400).send(error)
+            console.log("error", error)
+        }
+    }
 
     private comparePlan = async (currentPlanCost: number, newSub: Subscription) => {
         const newPlan = await this.getPlanDetails(newSub.plan_id);
@@ -140,7 +180,7 @@ class SubscriptionController extends UserController {
             return client.query('SELECT s.sub_id, s.user_id, s.start_date, s.active, p.id, p.plan_id, p.validity, p.cost FROM subscriptions s LEFT JOIN plans p ON s.plan_id = p.id WHERE s.user_id = ($1)', [userId])
                 .then((res) => {
                     client.release()
-                    return res.rows[0]
+                    return res.rows
                 })
                 .catch(err => {
                     client.release()

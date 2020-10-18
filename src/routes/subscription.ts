@@ -11,6 +11,7 @@ class SubscriptionRoutes {
     }
 
     config() {
+        this.router.get('/subscription/:username/:date?', this.subscriptionController.get);
         this.router.post('/subscription/', this.subscriptionController.post);
     }
 }
