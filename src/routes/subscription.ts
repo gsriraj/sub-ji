@@ -2,9 +2,6 @@
 import express, { Router } from 'express';
 import SubscriptionController from '../controllers/subscription';
 
-const router = Router();
-const subscriptionController = new SubscriptionController();
-
 class SubscriptionRoutes {
     public subscriptionController: SubscriptionController
 

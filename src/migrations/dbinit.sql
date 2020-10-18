@@ -37,7 +37,8 @@ CREATE TABLE subscriptions (
 	sub_id SERIAL PRIMARY KEY,
 	user_id INT REFERENCES users (user_id),
 	plan_id INT REFERENCES plans (id),
-	start_date DATE NOT NULL
+	start_date DATE NOT NULL,
+    active BOOLEAN NOT NULL 
 );
 
 -- SELECT * FROM subscriptions;
