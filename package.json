@@ -4,8 +4,9 @@
   "description": "a subscription as a service app",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "tsc && node dist/src/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "rimraf ./dist && tsc",
+    "start": "npm run build && node dist/src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "sriraj.gk@gmail.com",
@@ -17,6 +18,11 @@
     "axios": "^0.20.0",
     "express": "^4.17.1",
     "moment": "^2.29.1",
-    "pg": "^8.4.1"
+    "pg": "^8.4.1",
+    "typescript": "^4.0.3"
+  },
+  "devDependencies": {
+    "ts-node": "^9.0.0",
+    "rimraf": "^3.0.0"
   }
 }

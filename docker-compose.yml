@@ -1,34 +1,31 @@
 version: '3'
 services:
-  # sub-ji:
-  #   container_name: sub-ji
-  #   build:
-  #     context: .
-  #     dockerfile: .Dockerfile
-  #   depends_on:
-  #     - postgres
-  #   environment:
-  #     DATABASE_URL: postgres://admin:admin1234@postgres:5433/sub-ji
-  #     NODE_ENV: development
-  #     PORT: 19093
-  #   ports:
-  #     - "19093:19093"
-  # database:
-  #   image: "postgres"
-  #   env_file:
-  #     - database.env
-  #   volumes:
-  #     - database-data:/var/lib/postgresql/data/
   postgres:
-    container_name: postgres
-    image: "postgres"
-    ports:
-      - "5433:5432"
-    volumes: 
-      - ./postgresdata:/var/lib/postgresql/data
-      - ./src/migrations/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql
-    restart: always
+      container_name: postgres
+      image: "postgres"
+      ports:
+        - "5433:5432"
+      volumes: 
+        - ./postgresdata:/var/lib/postgresql/data
+        - ./src/migrations/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql
+      restart: always
+      environment:
+        POSTGRES_USER: admin
+        POSTGRES_PASSWORD: admin1234
+        POSTGRES_DB: sub-ji
+
+  sub-ji:
+    container_name: sub-ji
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - postgres
+    # command: ["sudo sh wait-for-postgres.sh", "postgres:5432"]
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin1234
-      POSTGRES_DB: sub-ji
+      WAIT_HOSTS: postgres:5432
+      DATABASE_URL: postgres://admin:admin1234@postgres:5432/sub-ji
+      NODE_ENV: development
+      PORT: 19093
+    ports:
+      - "19093:19093"

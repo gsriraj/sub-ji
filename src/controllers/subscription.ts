@@ -5,8 +5,6 @@ import UserController from './user';
 import { Conf } from '../utils/config';
 import Axios from 'axios';
 import moment from 'moment';
-
-// To do - implement error codes
 class SubscriptionController extends UserController {
     constructor() {
         super();
@@ -15,27 +13,21 @@ class SubscriptionController extends UserController {
     public post = async (req: Request, res: Response) => {
         try {
             const sub: Subscription = req.body;
-            console.log("data body", sub)
             const user = await this.getAUser(sub.user_name)
-            console.log("user check", user)
             if (user == undefined || null) {
-                console.log("User does not exist")
                 res.status(404).json({
                     "Error": "User does not exist"
                 })
             }
             const userSub: any = await this.getActiveSubDetail(user.user_id)
-            console.log(userSub, "User subscription")
             let paymentType = 'CREDIT';
             const plan = await this.getPlanDetails(sub.plan_id);
             if (plan == undefined || null) {
-                console.log("plan does not exist");
                 res.status(404).json({
                     "Error": "Plan does not exist"
                 })
             }
             if (userSub == undefined || null) {
-                console.log("User subscription does not exist")
                 await this.makePayment(paymentType, user.user_name, Number(plan.cost)).then(async (payment: any) => {
                     if (payment.status == "SUCCESS") {
                         await this.createASub(user.user_id, plan.id, sub.start_date).then(() => {
@@ -87,44 +79,60 @@ class SubscriptionController extends UserController {
     }
 
     public get = async (req: Request, res: Response) => {
-        console.log("get in")
         try {
             const userName: string = req.params.username
-            const date = moment(req.params.date)
+            const date = req.params.date ? moment(req.params.date) : undefined
             const user = await this.getAUser(userName)
-            let subs: any = await this.getSubDetails(user.user_id)
-            if (date == null || undefined) {
-                console.log("get in 2.2", subs)
-                subs = await subs.map((sub: any) => {
-                    console.log("get in 2.3", sub)
-                    let day = sub.start_date
-                    let day_start = moment(day).format("YYYY-MM-DD")
-                    let day_end = moment(day).add(parseInt(sub.validity), 'd').format("YYYY-MM-DD");
-                    console.log("final", day_start, day_end)
-                    return {
-                        "plan_id": sub.plan_id,
-                        "start_date": day_start,
-                        "valid_till": sub.validity == "Infinite" ? "Infinite" : day_end
-                    }
-                })
-                console.log("get in 3", subs)
-                res.status(200).json(subs);
-
+            if (user == null || undefined) {
+                res.status(404).send("User not found.");
             } else {
-                subs = await subs.map((sub: any) => {
-                    let dateTwo = moment(sub.start_date).add(parseInt(sub.validity), 'd')
-                    console.log("checkeeeee", date.isSameOrAfter(moment(sub.start_date)), ".......", date.isBefore(dateTwo))
-
-                    console.log("date 2", date, dateTwo)
-                    if (date.isSameOrAfter(moment(sub.start_date)) && date.isBefore(dateTwo)) {
-                        res.status(200).json(
-                            {
+                let subs: any = await this.getSubDetails(user.user_id)
+                if (subs.length == 0) {
+                    res.status(404).send("User does not have a subscription.");
+                } else {
+                    if (date == null || undefined) {
+                        subs = await subs.map((sub: any) => {
+                            let day = sub.start_date
+                            let day_start = moment(day).format("YYYY-MM-DD")
+                            let day_end = moment(day).add(parseInt(sub.validity), 'd').format("YYYY-MM-DD");
+                            return {
                                 "plan_id": sub.plan_id,
-                                "days_left": sub.plan_id == "FREE" ? "Infinite" : moment(sub.start_date).add(parseInt(sub.validity), 'd').diff(date, 'days')
+                                "start_date": day_start,
+                                "valid_till": sub.validity == "Infinite" ? "Infinite" : day_end
                             }
-                        )
+                        })
+                        res.status(200).json(subs);
+
+                    } else {
+                        let lowestDaysLeft: any = 365
+                        new Promise(async (resolve, reject) => {
+                            let val: any = []
+                            await subs.map((sub: any) => {
+                                let dateTwo = moment(sub.start_date).add(sub.validity == "Infinite" ? 365 : parseInt(sub.validity), 'd')
+                                if (date.isSameOrAfter(moment(sub.start_date)) && date.isBefore(dateTwo)) {
+                                    let daysLeft = sub.validity == "Infinite" ? 365 : moment(sub.start_date).add(parseInt(sub.validity), 'd').diff(date, 'days')
+                                    if (daysLeft > 0 && daysLeft <= lowestDaysLeft) lowestDaysLeft = daysLeft
+                                    val.push({
+                                        "plan_id": sub.plan_id,
+                                        "days_left": sub.plan_id == "FREE" ? "Infinite" : daysLeft
+                                    })
+
+                                } else return
+                            });
+                            resolve(val);
+                        }).then((subs: any) => {
+                            if (subs.length == 0) {
+                                res.status(403).send("User did not have any subscriptions during this period")
+                            }
+                            subs.map((sub: any) => {
+                                if (sub.days_left == lowestDaysLeft) {
+                                    res.status(200).json(sub)
+                                }
+                            });
+                        })
+
                     }
-                });
+                }
             }
         } catch (error) {
             res.status(400).send(error)
@@ -137,11 +145,9 @@ class SubscriptionController extends UserController {
         let amountToPay: number
         if (newPlan.cost > currentPlanCost) {
             amountToPay = newPlan.cost - currentPlanCost
-            console.log("to payyyyy", amountToPay, "............", newPlan)
             return { upgradeToHigherPlan: true, cost: amountToPay }
         }
         amountToPay = currentPlanCost - newPlan.cost
-        console.log("to payyyyy", amountToPay, "............", newPlan)
         return { upgradeToHigherPlan: false, cost: amountToPay }
     }
 
@@ -154,7 +160,6 @@ class SubscriptionController extends UserController {
                 })
                 .catch(err => {
                     client.release()
-                    // throw err.stack
                     console.log("error", err.stack)
                 })
         });
@@ -169,7 +174,6 @@ class SubscriptionController extends UserController {
                 })
                 .catch(err => {
                     client.release()
-                    // throw err.stack
                     console.log("error", err.stack)
                 })
         });
@@ -184,7 +188,6 @@ class SubscriptionController extends UserController {
                 })
                 .catch(err => {
                     client.release()
-                    // throw err.stack
                     console.log("error", err.stack)
                 })
         });
@@ -200,7 +203,6 @@ class SubscriptionController extends UserController {
                 })
                 .catch(err => {
                     client.release()
-                    // throw err.stack
                     console.log("error", err.stack)
                 })
         });
@@ -229,7 +231,6 @@ class SubscriptionController extends UserController {
         return await Axios
             .post(Conf.PAYMENT_API, data)
             .then(res => {
-                console.log(res.data)
                 return res.data
             })
             .catch(error => {
